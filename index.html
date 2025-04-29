@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+            html, body, #map {
+                height: 100%;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>  
+        <title></title>
+    </head>
+    <body>
+        <h1 style="text-align:center; font-family:sans-serif; font-size:28px; margin-top:10px;">
+            Historic Features of Beaver Island, Michigan
+            </h1>
+            <p style="text-align:center; font-family:sans-serif; font-size:16px; margin-bottom:10px; color:gray;">
+            Land Use, Trails, Structures, and Natural Features from Historic Sources
+            </p>     
+      
+        <div id="map">
+        </div>
+    <button id="aboutButton" style="position:absolute; top:10px; right:10px; z-index:1000; background:white; border:1px solid #ccc; border-radius:4px; padding:6px 10px; font-family:sans-serif; font-size:14px; cursor:pointer;">
+About
+</button>
+
+<div id="aboutPopup" style="display:none; position:absolute; top:50px; right:10px; z-index:999; background:#ffffff; border:1px solid #ccc; padding:12px; width:250px; font-family:sans-serif; font-size:13px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+    <strong>Historic Features of Beaver Island, Michigan</strong>
+    <p style="margin-top:8px;">This map displays historic land use areas, trails, structures, and natural features based on archival sources and historic imagery.</p>
+    <p><strong>Data Sources:</strong></p>
+    <ul style="padding-left:18px; margin:0;">
+        <li>1849 General Land Office (GLO) map of Beaver Island (Michigan Archives)</li>
+        <li>2016 NOAA 1-meter LiDAR DEM (vertical exaggeration 2×)</li>
+    </ul>
+    <p style="font-size:11px; color:gray; margin-top:8px;">Created by Anna Seebeck, 2025</p>
+</div>
+
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="data/Historic_Polyg_ExportFeature_4.js"></script>
+        <script src="data/Historic_Lines_ExportFeature_5.js"></script>
+        <script src="data/Historic_Points1_6.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[45.62631257343011,-85.63817963848312],[45.69937382331299,-85.45292274217381]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        L.control.scale({
+    position: 'bottomleft',
+    metric: true,
+    imperial: false
+}).addTo(map);
+    
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_ESRISatellite_0');
+        map.getPane('pane_ESRISatellite_0').style.zIndex = 400;
+        var layer_ESRISatellite_0 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            pane: 'pane_ESRISatellite_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_ESRISatellite_0;
+        map.addLayer(layer_ESRISatellite_0);
+        map.createPane('pane_CartoLight_1');
+        map.getPane('pane_CartoLight_1').style.zIndex = 401;
+        var layer_CartoLight_1 = L.tileLayer('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    pane: 'pane_CartoLight_1',
+    opacity: 1.0,
+    attribution: '',
+    minZoom: 1,
+    maxZoom: 28,
+    minNativeZoom: 0,
+    maxNativeZoom: 18
+});
+        layer_CartoLight_1;
+        map.addLayer(layer_CartoLight_1);
+        map.createPane('pane_HistoricImagery_2');
+        map.getPane('pane_HistoricImagery_2').style.zIndex = 402;
+        var layer_HistoricImagery_2 = L.tileLayer('HistoricMapTiles/{z}/{x}/{y}.png', {
+            pane: 'pane_HistoricImagery_2',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 9,
+            maxNativeZoom: 14
+        });
+        layer_HistoricImagery_2;
+        map.addLayer(layer_HistoricImagery_2);
+        map.createPane('pane_BeaverIslandShadedRelief_3');
+        map.getPane('pane_BeaverIslandShadedRelief_3').style.zIndex = 403;
+        var layer_BeaverIslandShadedRelief_3 = L.tileLayer('ShadedReliefTiles/{z}/{x}/{y}.png', {
+            pane: 'pane_BeaverIslandShadedRelief_3',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 9,
+            maxNativeZoom: 14
+        });
+        layer_BeaverIslandShadedRelief_3;
+        map.addLayer(layer_BeaverIslandShadedRelief_3);
+        function pop_Historic_Polyg_ExportFeature_4(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Feature_Ty'] !== null ? autolinker.link(String(feature.properties['Feature_Ty']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Source_Map'] !== null ? autolinker.link(String(feature.properties['Source_Map']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Notes'] !== null ? autolinker.link(String(feature.properties['Notes']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Area_ha'] !== null ? autolinker.link(String(feature.properties['Area_ha']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Leng'] !== null ? autolinker.link(String(feature.properties['Shape_Leng']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(String(feature.properties['Shape_Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Historic_Polyg_ExportFeature_4_0(feature) {
+            switch(String(feature.properties['Feature_Ty'])) {
+                default:
+                    return {
+                pane: 'pane_Historic_Polyg_ExportFeature_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(101,39,214,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Farming':
+                    return {
+                pane: 'pane_Historic_Polyg_ExportFeature_4',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,251,138,0.8352941176470589)',
+                interactive: true,
+            }
+                    break;
+                case 'Landform':
+                    return {
+                pane: 'pane_Historic_Polyg_ExportFeature_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(190,182,229,0.796078431372549)',
+                interactive: true,
+            }
+                    break;
+                case 'Marshland':
+                    return {
+                pane: 'pane_Historic_Polyg_ExportFeature_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,191,111,0.8117647058823529)',
+                interactive: true,
+            }
+                    break;
+                case 'Tree Stand':
+                    return {
+                pane: 'pane_Historic_Polyg_ExportFeature_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(178,223,138,0.8156862745098039)',
+                interactive: true,
+            }
+                    break;
+                case 'Water':
+                    return {
+                pane: 'pane_Historic_Polyg_ExportFeature_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(166,206,227,0.8196078431372549)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Historic_Polyg_ExportFeature_4');
+        map.getPane('pane_Historic_Polyg_ExportFeature_4').style.zIndex = 404;
+        map.getPane('pane_Historic_Polyg_ExportFeature_4').style['mix-blend-mode'] = 'normal';
+        var layer_Historic_Polyg_ExportFeature_4 = new L.geoJson(json_Historic_Polyg_ExportFeature_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Historic_Polyg_ExportFeature_4',
+            layerName: 'layer_Historic_Polyg_ExportFeature_4',
+            pane: 'pane_Historic_Polyg_ExportFeature_4',
+            onEachFeature: pop_Historic_Polyg_ExportFeature_4,
+            style: style_Historic_Polyg_ExportFeature_4_0,
+        });
+        bounds_group.addLayer(layer_Historic_Polyg_ExportFeature_4);
+        map.addLayer(layer_Historic_Polyg_ExportFeature_4);
+        function pop_Historic_Lines_ExportFeature_5(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Feature_Ty'] !== null ? autolinker.link(String(feature.properties['Feature_Ty']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Source_Map'] !== null ? autolinker.link(String(feature.properties['Source_Map']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Notes'] !== null ? autolinker.link(String(feature.properties['Notes']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Length_m'] !== null ? autolinker.link(String(feature.properties['Length_m']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Leng'] !== null ? autolinker.link(String(feature.properties['Shape_Leng']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Historic_Lines_ExportFeature_5_0(feature) {
+    switch(String(feature.properties['Feature_Ty'])) {
+        case 'Bluff':
+            return {
+                pane: 'pane_Historic_Lines_ExportFeature_5',
+                opacity: 1,
+                color: 'rgba(165,126,219,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        case 'River':
+            return {
+                pane: 'pane_Historic_Lines_ExportFeature_5',
+                opacity: 1,
+                color: 'rgba(72,123,182,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        case 'Trail':
+        case 'Trail 11':
+            return {
+                pane: 'pane_Historic_Lines_ExportFeature_5',
+                opacity: 1,
+                color: 'rgba(99,73,49,1.0)', // brown
+                dashArray: '6,6', // dashed line
+                lineCap: 'round',
+                lineJoin: 'round',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        default:
+            return {
+                pane: 'pane_Historic_Lines_ExportFeature_5',
+                opacity: 1,
+                color: 'rgba(136,51,215,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'round',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+    }
+}
+
+        map.createPane('pane_Historic_Lines_ExportFeature_5');
+        map.getPane('pane_Historic_Lines_ExportFeature_5').style.zIndex = 405;
+        map.getPane('pane_Historic_Lines_ExportFeature_5').style['mix-blend-mode'] = 'normal';
+        var layer_Historic_Lines_ExportFeature_5 = new L.geoJson(json_Historic_Lines_ExportFeature_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Historic_Lines_ExportFeature_5',
+            layerName: 'layer_Historic_Lines_ExportFeature_5',
+            pane: 'pane_Historic_Lines_ExportFeature_5',
+            onEachFeature: pop_Historic_Lines_ExportFeature_5,
+            style: style_Historic_Lines_ExportFeature_5_0,
+        });
+        bounds_group.addLayer(layer_Historic_Lines_ExportFeature_5);
+        map.addLayer(layer_Historic_Lines_ExportFeature_5);
+        function pop_Historic_Points1_6(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Feature_Ty'] !== null ? autolinker.link(String(feature.properties['Feature_Ty']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Source_Map'] !== null ? autolinker.link(String(feature.properties['Source_Map']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Notes'] !== null ? autolinker.link(String(feature.properties['Notes']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Easting'] !== null ? autolinker.link(String(feature.properties['Easting']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Northing'] !== null ? autolinker.link(String(feature.properties['Northing']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Elevation'] !== null ? autolinker.link(String(feature.properties['Elevation']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Historic_Points1_6_0(feature) {
+            switch(String(feature.properties['Feature_Ty'])) {
+                case 'Farming':
+                    return {
+                pane: 'pane_Historic_Points1_6',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(237,119,96,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Natural Feature':
+                    return {
+                pane: 'pane_Historic_Points1_6',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(59,195,225,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Structure':
+                    return {
+                pane: 'pane_Historic_Points1_6',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(196,213,109,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Sugar Camp':
+                    return {
+                pane: 'pane_Historic_Points1_6',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(231,103,210,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Village':
+                    return {
+                pane: 'pane_Historic_Points1_6',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(42,236,74,1.0)',
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_Historic_Points1_6',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(136,117,218,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Historic_Points1_6');
+        map.getPane('pane_Historic_Points1_6').style.zIndex = 406;
+        map.getPane('pane_Historic_Points1_6').style['mix-blend-mode'] = 'normal';
+        var layer_Historic_Points1_6 = new L.geoJson(json_Historic_Points1_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Historic_Points1_6',
+            layerName: 'layer_Historic_Points1_6',
+            pane: 'pane_Historic_Points1_6',
+            onEachFeature: pop_Historic_Points1_6,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Historic_Points1_6_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Historic_Points1_6);
+        map.addLayer(layer_Historic_Points1_6);
+        var overlaysTree = [
+            {label: 'Historic_Points1<br /><table><tr><td style="text-align: center;"><img src="legend/Historic_Points1_6_Farming0.png" /></td><td>Farming</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Points1_6_NaturalFeature1.png" /></td><td>Natural Feature</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Points1_6_Structure2.png" /></td><td>Structure</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Points1_6_SugarCamp3.png" /></td><td>Sugar Camp</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Points1_6_Village4.png" /></td><td>Village</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Points1_6_5.png" /></td><td></td></tr></table>', layer: layer_Historic_Points1_6},
+            {label: 'Historic_Lines_ExportFeature<br /><table><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_Bluff0.png" /></td><td>Bluff</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_River1.png" /></td><td>River</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_TrailTrail112.png" /></td><td>Trail,Trail 11</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_3.png" /></td><td></td></tr></table>', layer: layer_Historic_Lines_ExportFeature_5},
+            {label: 'Historic_Polyg_ExportFeature<br /><table><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Farming1.png" /></td><td>Farming</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Landform2.png" /></td><td>Landform</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Marshland3.png" /></td><td>Marshland</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_TreeStand4.png" /></td><td>Tree Stand</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Water5.png" /></td><td>Water</td></tr></table>', layer: layer_Historic_Polyg_ExportFeature_4},
+            {label: "Beaver Island Shaded Relief", layer: layer_BeaverIslandShadedRelief_3},
+            {label: "Historic Imagery", layer: layer_HistoricImagery_2},
+            {label: "Carto Light", layer: layer_CartoLight_1},
+            {label: "ESRI Satellite", layer: layer_ESRISatellite_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+    // About Button Toggle Script
+document.getElementById('aboutButton').addEventListener('click', function() {
+    var popup = document.getElementById('aboutPopup');
+    if (popup.style.display === "none" || popup.style.display === "") {
+        popup.style.display = "block";
+    } else {
+        popup.style.display = "none";
+    }
+});
+
+
+        </script>
+    </body>
+</html>

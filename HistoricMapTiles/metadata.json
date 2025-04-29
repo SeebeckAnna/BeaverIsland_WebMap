@@ -1,0 +1,13 @@
+{
+  "name": "HistoricMapTiles",
+  "version": "1.1.0",
+  "description": "",
+  "attribution": "<a href=\"https://www.maptiler.com/engine/\">Rendered with MapTiler Engine</a>, non-commercial use only",
+  "type": "overlay",
+  "format": "png",
+  "minzoom": "9",
+  "maxzoom": "14",
+  "scale": "1.000000",
+  "bounds": [-85.71796586, 45.56457205, -85.34147373, 45.84837914],
+  "profile": "mercator"
+}
