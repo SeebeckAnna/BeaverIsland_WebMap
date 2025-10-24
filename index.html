@@ -22,6 +22,8 @@
         <title></title>
     </head>
     <body>
+
+<!--Web Map Title-->
         <h1 style="text-align:center; font-family:sans-serif; font-size:28px; margin-top:10px;">
             Historic Features of Beaver Island, Michigan
             </h1>
@@ -34,6 +36,8 @@
         <button id="aboutButton" style="position:absolute; bottom:30px; left:10px; z-index:1000; background:white; border:1px solid #ccc; border-radius:6px; padding:6px 12px; font-family:sans-serif; font-size:14px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.2);">
             About
             </button>
+
+<!--About Section Pop-Up-->
 <div id="aboutPopup" style="display:none; position:absolute; bottom:70px; left:10px; z-index:999; background:#ffffff; border:1px solid #ccc; padding:12px; width:260px; font-family:sans-serif; font-size:13px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
                 <strong>Historic Features of Beaver Island, Michigan</strong>
                 <p style="margin-top:8px;">This map displays historic land use areas, trails, structures, and natural features based on archival sources and historic imagery.</p>
@@ -44,7 +48,7 @@
                 </ul>
                 <p style="font-size:11px; color:gray; margin-top:8px;">Created by Anna Seebeck, 2025</p>
  </div>
-            
+
         <script src="js/qgis2web_expressions.js"></script>
         <script src="js/leaflet.js"></script>
         <script src="js/L.Control.Layers.Tree.min.js"></script>
@@ -153,6 +157,7 @@
             minNativeZoom: 9,
             maxNativeZoom: 14
         });
+
         layer_HistoricImagery_2;
         map.addLayer(layer_HistoricImagery_2);
         map.createPane('pane_BeaverIslandShadedRelief_3');
@@ -559,7 +564,7 @@
             {label: 'Historic_Lines_ExportFeature<br /><table><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_Bluff0.png" /></td><td>Bluff</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_River1.png" /></td><td>River</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_TrailTrail112.png" /></td><td>Trail,Trail 11</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Lines_ExportFeature_5_3.png" /></td><td></td></tr></table>', layer: layer_Historic_Lines_ExportFeature_5},
             {label: 'Historic_Polyg_ExportFeature<br /><table><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Farming1.png" /></td><td>Farming</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Landform2.png" /></td><td>Landform</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Marshland3.png" /></td><td>Marshland</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_TreeStand4.png" /></td><td>Tree Stand</td></tr><tr><td style="text-align: center;"><img src="legend/Historic_Polyg_ExportFeature_4_Water5.png" /></td><td>Water</td></tr></table>', layer: layer_Historic_Polyg_ExportFeature_4},
             {label: "Beaver Island Shaded Relief", layer: layer_BeaverIslandShadedRelief_3},
-            {label: "Historic Imagery", layer: layer_HistoricImagery_2},
+            {label: "1849 GLO Map", layer: layer_HistoricImagery_2},
             {label: "Carto Light", layer: layer_CartoLight_1},
             {label: "ESRI Satellite", layer: layer_ESRISatellite_0},]
         var lay = L.control.layers.tree(null, overlaysTree,{
